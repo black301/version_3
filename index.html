@@ -673,9 +673,9 @@
               // Check if the field contains a URL
               if (value && typeof value === 'string') {
                 // Special handling for LinkedIn field
-                if (key === 'LinkedIn') {
+                if (key === 'LinkedIN') {
                   if (isValidURL(value)) {
-                    newItem[key] = { url: value, text: 'View Profile' };
+                    newItem[key] = { url: value, text: 'View LinkedIN Profile' };
                   }
                 } 
                 // Special handling for CV field
@@ -686,7 +686,7 @@
                 }
                 // General URL detection for other fields
                 else if (isValidURL(value)) {
-                  newItem[key] = { url: value, text: 'View linkedin' };
+                  newItem[key] = { url: value, text: 'View LinkedIN Profile' };
                 }
               }
             });
@@ -924,7 +924,7 @@
       filteredData.forEach((item, index) => {
         // Find the name field - it could be 'name' or 'Name'
         const nameField = Object.keys(item).find(key => 
-          key.toLowerCase() === 'name' || 
+          key.toLowerCase() === 'name ' || 
           key.toLowerCase() === 'full name' || 
           key.toLowerCase() === 'fullname'
         );
