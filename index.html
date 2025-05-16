@@ -606,36 +606,21 @@
       clearAlert();
       
       try {
-        // Try to load from localStorage first for faster initial load
-        const cachedData = localStorage.getItem('fciTeamData');
-        const cachedTimestamp = localStorage.getItem('fciTeamTimestamp');
-        
-        if (cachedData && cachedTimestamp) {
-          const timestamp = new Date(cachedTimestamp);
-          const now = new Date();
-          const diffMinutes = (now - timestamp) / (1000 * 60);
-          
-          // Use cached data if it's less than 30 minutes old
-          if (diffMinutes < 30) {
-            allData = JSON.parse(cachedData);
-            filteredData = [...allData];
-            renderTable();
-            renderMobileCards();
-            updateTotalEntries();
-            updateLastUpdated(timestamp);
-            hideLoading();
-            return;
-          }
-        }
-        
         // Google Sheets CSV URL
         const csvUrl = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vR2KXpX8_6FUj3Ks77B6WNJrw2QJlQnt0WWPSk2U6V1z8a1G5rwEnKNBqrnmT_9HZCoy5uREiZrs9uA/pub?gid=1596920951&single=true&output=csv';
         
-        // Use a CORS proxy if needed
-        // const proxyUrl = 'https://cors-anywhere.herokuapp.com/';
-        // const fetchUrl = proxyUrl + csvUrl;
+        // Add a cache-busting parameter to ensure fresh data
+        const cacheBuster = new Date().getTime();
+        const fetchUrl = `${csvUrl}&_=${cacheBuster}`;
         
-        const response = await fetch(csvUrl);
+        const response = await fetch(fetchUrl, {
+          cache: 'no-store', // Tell the browser not to use any cached version
+          headers: {
+            'Pragma': 'no-cache',
+            'Cache-Control': 'no-cache, no-store, must-revalidate'
+          }
+        });
+        
         if (!response.ok) {
           throw new Error(`Failed to fetch data: ${response.status} ${response.statusText}`);
         }
@@ -693,10 +678,6 @@
             
             return newItem;
           });
-          
-          // Save to localStorage for faster loading next time
-          localStorage.setItem('fciTeamData', JSON.stringify(allData));
-          localStorage.setItem('fciTeamTimestamp', new Date().toISOString());
           
           // Update the UI
           filteredData = [...allData];
