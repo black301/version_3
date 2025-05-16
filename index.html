@@ -3,13 +3,15 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Google Sheet Viewer</title>
+  <title>FCI Team Members</title>
+  <!-- Include PapaParse for CSV parsing -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.0/papaparse.min.js"></script>
   <style>
     :root {
-      --primary: #3b82f6;
-      --primary-light: #dbeafe;
-      --primary-dark: #2563eb;
+      /* Color scheme */
+      --primary: #4f46e5;
+      --primary-light: #e0e7ff;
+      --primary-dark: #4338ca;
       --secondary: #f3f4f6;
       --gray-50: #f9fafb;
       --gray-100: #f3f4f6;
@@ -21,12 +23,16 @@
       --gray-700: #374151;
       --gray-800: #1f2937;
       --gray-900: #111827;
-      --red-100: #fee2e2;
-      --red-500: #ef4444;
-      --red-700: #b91c1c;
-      --green-100: #dcfce7;
-      --green-500: #22c55e;
-      --green-700: #15803d;
+      
+      /* Department colors */
+      --cs-color: #3b82f6;
+      --cs-bg: #dbeafe;
+      --it-color: #10b981;
+      --it-bg: #d1fae5;
+      --is-color: #8b5cf6;
+      --is-bg: #ede9fe;
+      
+      /* UI elements */
       --radius: 0.5rem;
       --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
       --shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
@@ -90,7 +96,7 @@
     .search-box {
       position: relative;
       flex: 1;
-      width: 100%;
+      min-width: 200px;
     }
     
     .search-icon {
@@ -116,6 +122,33 @@
       box-shadow: 0 0 0 3px var(--primary-light);
     }
     
+    .filters {
+      display: flex;
+      gap: 0.5rem;
+      flex-wrap: wrap;
+    }
+    
+    .filter-btn {
+      background-color: white;
+      border: 1px solid var(--gray-300);
+      color: var(--gray-700);
+      padding: 0.375rem 0.75rem;
+      border-radius: var(--radius);
+      font-size: 0.875rem;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+    
+    .filter-btn:hover {
+      background-color: var(--gray-100);
+    }
+    
+    .filter-btn.active {
+      background-color: var(--primary-light);
+      border-color: var(--primary);
+      color: var(--primary-dark);
+    }
+    
     .info {
       font-size: 0.875rem;
       color: var(--gray-600);
@@ -124,6 +157,7 @@
       gap: 0.5rem;
       width: 100%;
       justify-content: space-between;
+      margin-top: 0.5rem;
     }
     
     .badge {
@@ -187,6 +221,7 @@
       cursor: not-allowed;
     }
     
+    /* Table styles */
     .table-wrapper {
       background-color: white;
       border-radius: var(--radius);
@@ -197,13 +232,13 @@
     
     .table-container {
       overflow-x: auto;
-      -webkit-overflow-scrolling: touch; /* Smooth scrolling on iOS */
+      -webkit-overflow-scrolling: touch;
     }
     
     table {
       width: 100%;
       border-collapse: collapse;
-      min-width: 600px; /* Ensure table has a minimum width for scrolling */
+      min-width: 600px;
     }
     
     th, td {
@@ -245,6 +280,33 @@
       background-color: var(--gray-50);
     }
     
+    /* Department badges */
+    .dept-badge {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0.25rem 0.5rem;
+      border-radius: 9999px;
+      font-size: 0.75rem;
+      font-weight: 500;
+      white-space: nowrap;
+    }
+    
+    .dept-cs {
+      background-color: var(--cs-bg);
+      color: var(--cs-color);
+    }
+    
+    .dept-it {
+      background-color: var(--it-bg);
+      color: var(--it-color);
+    }
+    
+    .dept-is {
+      background-color: var(--is-bg);
+      color: var(--is-color);
+    }
+    
     a {
       color: var(--primary);
       text-decoration: none;
@@ -252,7 +314,7 @@
       align-items: center;
       gap: 0.25rem;
       font-weight: 500;
-      padding: 0.25rem 0; /* Increase tap target size for mobile */
+      padding: 0.25rem 0;
     }
     
     a:hover {
@@ -270,15 +332,15 @@
     }
     
     .alert-error {
-      background-color: var(--red-100);
-      color: var(--red-700);
-      border: 1px solid var(--red-500);
+      background-color: #fee2e2;
+      color: #b91c1c;
+      border: 1px solid #ef4444;
     }
     
     .alert-success {
-      background-color: var(--green-100);
-      color: var(--green-700);
-      border: 1px solid var(--green-500);
+      background-color: #dcfce7;
+      color: #15803d;
+      border: 1px solid #22c55e;
     }
     
     .alert-title {
@@ -331,6 +393,83 @@
       color: var(--gray-500);
     }
     
+    /* Mobile card view */
+    .mobile-cards {
+      display: none;
+    }
+    
+    .mobile-card {
+      background-color: white;
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      border: 1px solid var(--gray-200);
+      margin-bottom: 1rem;
+      overflow: hidden;
+    }
+    
+    .mobile-card-header {
+      padding: 1rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      cursor: pointer;
+      border-bottom: 1px solid var(--gray-200);
+      background-color: var(--gray-50);
+    }
+    
+    .mobile-card-header h3 {
+      font-size: 1rem;
+      font-weight: 600;
+      margin: 0;
+    }
+    
+    .header-right {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    
+    .mobile-card-content {
+      display: none;
+      padding: 1rem;
+    }
+    
+    .mobile-card.expanded .mobile-card-content {
+      display: block;
+    }
+    
+    .mobile-card-row {
+      display: flex;
+      margin-bottom: 0.75rem;
+      border-bottom: 1px solid var(--gray-100);
+      padding-bottom: 0.75rem;
+    }
+    
+    .mobile-card-row:last-child {
+      margin-bottom: 0;
+      border-bottom: none;
+      padding-bottom: 0;
+    }
+    
+    .mobile-card-label {
+      font-weight: 500;
+      color: var(--gray-700);
+      width: 40%;
+      padding-right: 1rem;
+    }
+    
+    .mobile-card-value {
+      flex: 1;
+    }
+    
+    .chevron-icon {
+      transition: transform 0.2s ease;
+    }
+    
+    .mobile-card.expanded .chevron-icon {
+      transform: rotate(180deg);
+    }
+    
     /* Mobile optimizations */
     @media (max-width: 768px) {
       body {
@@ -356,38 +495,30 @@
         align-items: flex-start;
       }
       
-      .info {
-        margin-top: 0.5rem;
+      .search-box {
+        width: 100%;
       }
       
-      th, td {
-        padding: 0.75rem;
+      .filters {
+        margin-top: 0.5rem;
+        width: 100%;
+        justify-content: space-between;
+      }
+      
+      .filter-btn {
+        flex: 1;
+        text-align: center;
+        white-space: nowrap;
+        padding: 0.375rem 0.5rem;
+        font-size: 0.75rem;
       }
       
       .table-wrapper {
-        border-radius: var(--radius);
-        margin: 0 -0.75rem; /* Extend to edges on mobile */
-        width: calc(100% + 1.5rem);
+        display: none;
       }
       
-      /* Add horizontal scroll indicator */
-      .scroll-indicator {
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        padding: 0.5rem;
-        color: var(--gray-500);
-        font-size: 0.75rem;
-        background-color: var(--gray-50);
-        border-bottom: 1px solid var(--gray-200);
-      }
-      
-      /* Increase tap target size for links on mobile */
-      a {
-        padding: 0.5rem 0;
-        min-height: 44px; /* Apple's recommended minimum tap target size */
-        display: inline-flex;
-        align-items: center;
+      .mobile-cards {
+        display: block;
       }
     }
   </style>
@@ -396,8 +527,8 @@
   <div class="container">
     <header>
       <div>
-        <h1>Google Sheet Viewer</h1>
-        <p class="subtitle">View and search your Google Form submissions</p>
+        <h1>FCI Graduation Team Members</h1>
+        <p class="subtitle">General Departments in FCI</p>
       </div>
       <button id="refresh-button" class="primary" onclick="loadData()">
         <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -422,6 +553,14 @@
         </span>
         <input type="search" id="search-input" placeholder="Search..." oninput="filterData()">
       </div>
+      
+      <div class="filters">
+        <button class="filter-btn active" data-filter="all" onclick="filterByDepartment('all')">All</button>
+        <button class="filter-btn" data-filter="CS" onclick="filterByDepartment('CS')">CS</button>
+        <button class="filter-btn" data-filter="IT" onclick="filterByDepartment('IT')">IT</button>
+        <button class="filter-btn" data-filter="IS" onclick="filterByDepartment('IS')">IS</button>
+      </div>
+      
       <div class="info">
         <div>
           <span class="badge" id="total-entries">0</span> entries
@@ -430,23 +569,21 @@
       </div>
     </div>
     
+    <!-- Desktop Table View -->
     <div class="table-wrapper">
-      <div id="mobile-scroll-indicator" class="scroll-indicator" style="display: none;">
-        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 0.25rem;">
-          <polyline points="15 18 9 12 15 6"></polyline>
-          <polyline points="9 18 3 12 9 6"></polyline>
-        </svg>
-        Scroll horizontally to view all data
-        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-left: 0.25rem;">
-          <polyline points="9 18 15 12 9 6"></polyline>
-          <polyline points="15 18 21 12 15 6"></polyline>
-        </svg>
-      </div>
       <div id="table-container" class="table-container">
         <div class="loading">
           <div class="spinner"></div>
           <div>Loading data...</div>
         </div>
+      </div>
+    </div>
+    
+    <!-- Mobile Card View -->
+    <div id="mobile-cards" class="mobile-cards">
+      <div class="loading">
+        <div class="spinner"></div>
+        <div>Loading data...</div>
       </div>
     </div>
   </div>
@@ -456,22 +593,12 @@
     let allData = [];
     let filteredData = [];
     let sortConfig = { key: null, direction: 'ascending' };
-    let isMobile = window.innerWidth < 768;
+    let currentFilter = 'all';
     
     // Initialize the page
     document.addEventListener('DOMContentLoaded', function() {
-      checkMobile();
       loadData();
-      
-      // Check for mobile on resize
-      window.addEventListener('resize', checkMobile);
     });
-    
-    // Check if device is mobile
-    function checkMobile() {
-      isMobile = window.innerWidth < 768;
-      document.getElementById('mobile-scroll-indicator').style.display = isMobile ? 'flex' : 'none';
-    }
     
     // Load data from Google Sheets
     async function loadData() {
@@ -479,132 +606,161 @@
       clearAlert();
       
       try {
-        // Try to load from localStorage first
-        const cachedData = localStorage.getItem('sheetViewerData');
-        const cachedTimestamp = localStorage.getItem('sheetViewerTimestamp');
+        // Try to load from localStorage first for faster initial load
+        const cachedData = localStorage.getItem('fciTeamData');
+        const cachedTimestamp = localStorage.getItem('fciTeamTimestamp');
         
-        if (cachedData) {
-          allData = JSON.parse(cachedData);
-          filteredData = [...allData];
+        if (cachedData && cachedTimestamp) {
+          const timestamp = new Date(cachedTimestamp);
+          const now = new Date();
+          const diffMinutes = (now - timestamp) / (1000 * 60);
           
-          if (cachedTimestamp) {
-            updateLastUpdated(new Date(cachedTimestamp));
+          // Use cached data if it's less than 30 minutes old
+          if (diffMinutes < 30) {
+            allData = JSON.parse(cachedData);
+            filteredData = [...allData];
+            renderTable();
+            renderMobileCards();
+            updateTotalEntries();
+            updateLastUpdated(timestamp);
+            hideLoading();
+            return;
           }
-          
-          // If we have cached data, render it immediately while we fetch fresh data
-          renderTable();
-          updateTotalEntries();
         }
         
-        // CORS Warning: This direct fetch will likely fail due to CORS restrictions
-        // For a production app, you should use a server-side proxy or API
+        // Google Sheets CSV URL
         const csvUrl = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vR2KXpX8_6FUj3Ks77B6WNJrw2QJlQnt0WWPSk2U6V1z8a1G5rwEnKNBqrnmT_9HZCoy5uREiZrs9uA/pub?gid=1596920951&single=true&output=csv';
         
-        // Uncomment this line to use a CORS proxy (for testing only)
+        // Use a CORS proxy if needed
         // const proxyUrl = 'https://cors-anywhere.herokuapp.com/';
         // const fetchUrl = proxyUrl + csvUrl;
         
         const response = await fetch(csvUrl);
-        const csvText = await response.text();
-        
-        Papa.parse(csvText, {
-          header: true,
-          skipEmptyLines: true,
-          complete: function(results) {
-            // Process the data
-            allData = results.data.map(item => {
-              const newItem = { ...item };
-              
-              // Remove Timestamp and Email fields if they exist
-              delete newItem.Timestamp;
-              delete newItem.Email;
-              
-              // Process all fields to check for URLs
-              Object.keys(newItem).forEach(key => {
-                const value = newItem[key];
-                
-                // Check if the field contains a URL
-                if (value && typeof value === 'string') {
-                  // Special handling for LinkedIn field
-                  if (key === 'LinkedIn') {
-                    if (isValidURL(value)) {
-                      newItem[key] = { url: value, text: 'View Profile' };
-                    }
-                  } 
-                  // Special handling for CV field
-                  else if (key === 'CV') {
-                    if (isValidURL(value)) {
-                      newItem[key] = { url: value, text: 'View CV' };
-                    }
-                  }
-                  // General URL detection for other fields
-                  else if (isValidURL(value)) {
-                    newItem[key] = { url: value, text: "view linkedin" };
-                  }
-                }
-              });
-              
-              return newItem;
-            });
-            
-            // Save to localStorage
-            localStorage.setItem('sheetViewerData', JSON.stringify(allData));
-            localStorage.setItem('sheetViewerTimestamp', new Date().toISOString());
-            
-            // Update the UI
-            filteredData = [...allData];
-            renderTable();
-            updateTotalEntries();
-            clearAlert();
-            showSuccessAlert('Data refreshed successfully!');
-          },
-          error: function(error) {
-            console.error('Error parsing CSV:', error);
-            showErrorAlert('Failed to parse CSV data. Using cached data if available.');
-            hideLoading();
-          }
-        });
-      } catch (error) {
-        console.error('Error fetching data:', error);
-        
-        if (allData.length === 0) {
-          // If we have no data at all, show a more detailed error
-          showErrorAlert(`
-            <div class="alert-title">Failed to load data</div>
-            <p>This is likely due to CORS restrictions when running locally. Try one of these solutions:</p>
-            <ol style="margin-left: 1.5rem; margin-top: 0.5rem;">
-              <li>Use a server-side proxy</li>
-              <li>Use a CORS proxy (uncomment the proxy code)</li>
-              <li>Export your Google Sheet as a static JSON file</li>
-            </ol>
-          `);
-        } else {
-          // If we have some cached data, show a simpler error
-          showErrorAlert('Failed to refresh data. Using cached data from previous load.');
+        if (!response.ok) {
+          throw new Error(`Failed to fetch data: ${response.status} ${response.statusText}`);
         }
         
+        const csvText = await response.text();
+        parseCSVData(csvText);
+      } catch (error) {
+        console.error('Error loading data:', error);
+        showErrorAlert(`
+          <div class="alert-title">Failed to load data</div>
+          <p>Make sure your Google Sheet is publicly accessible and the URL is correct.</p>
+          <p>Error: ${error.message}</p>
+        `);
         hideLoading();
       }
+    }
+    
+    // Parse CSV data
+    function parseCSVData(csvText) {
+      Papa.parse(csvText, {
+        header: true,
+        skipEmptyLines: true,
+        complete: function(results) {
+          // Process the data
+          allData = results.data.map(item => {
+            const newItem = { ...item };
+            
+            // Remove Timestamp field if it exists
+            delete newItem.Timestamp;
+            
+            // Process all fields to check for URLs
+            Object.keys(newItem).forEach(key => {
+              const value = newItem[key];
+              
+              // Check if the field contains a URL
+              if (value && typeof value === 'string') {
+                // Special handling for LinkedIn field
+                if (key === 'LinkedIn') {
+                  if (isValidURL(value)) {
+                    newItem[key] = { url: value, text: 'View Profile' };
+                  }
+                } 
+                // Special handling for CV field
+                else if (key === 'CV') {
+                  if (isValidURL(value)) {
+                    newItem[key] = { url: value, text: 'View CV' };
+                  }
+                }
+                // General URL detection for other fields
+                else if (isValidURL(value)) {
+                  newItem[key] = { url: value, text: 'View linkedin' };
+                }
+              }
+            });
+            
+            return newItem;
+          });
+          
+          // Save to localStorage for faster loading next time
+          localStorage.setItem('fciTeamData', JSON.stringify(allData));
+          localStorage.setItem('fciTeamTimestamp', new Date().toISOString());
+          
+          // Update the UI
+          filteredData = [...allData];
+          renderTable();
+          renderMobileCards();
+          updateTotalEntries();
+          updateLastUpdated(new Date());
+          hideLoading();
+          showSuccessAlert('Data loaded successfully!');
+        },
+        error: function(error) {
+          console.error('Error parsing CSV:', error);
+          showErrorAlert('Failed to parse CSV data. Please check the format of your spreadsheet.');
+          hideLoading();
+        }
+      });
     }
     
     // Filter data based on search term
     function filterData() {
       const searchTerm = document.getElementById('search-input').value.toLowerCase();
       
-      if (searchTerm.trim() === '') {
-        filteredData = [...allData];
-      } else {
-        filteredData = allData.filter(item => {
+      // Apply both search and department filters
+      applyFilters(searchTerm, currentFilter);
+    }
+    
+    // Filter by department
+    function filterByDepartment(department) {
+      // Update active filter button
+      document.querySelectorAll('.filter-btn').forEach(btn => {
+        btn.classList.remove('active');
+      });
+      document.querySelector(`.filter-btn[data-filter="${department}"]`).classList.add('active');
+      
+      currentFilter = department;
+      
+      // Apply both search and department filters
+      const searchTerm = document.getElementById('search-input').value.toLowerCase();
+      applyFilters(searchTerm, department);
+    }
+    
+    // Apply both search and department filters
+    function applyFilters(searchTerm, department) {
+      filteredData = allData.filter(item => {
+        // Department filter
+        if (department !== 'all' && item.department !== department) {
+          return false;
+        }
+        
+        // Search filter
+        if (searchTerm.trim() !== '') {
           return Object.entries(item).some(([key, value]) => {
             if (typeof value === 'object' && value !== null && value.text) {
               return value.text.toLowerCase().includes(searchTerm);
             }
             return value && value.toString().toLowerCase().includes(searchTerm);
           });
-        });
-      }
+        }
+        
+        return true;
+      });
       
       renderTable();
+      renderMobileCards();
       updateTotalEntries();
     }
     
@@ -639,9 +795,10 @@
       });
       
       renderTable();
+      renderMobileCards();
     }
     
-    // Render the data table
+    // Render the data table for desktop
     function renderTable() {
       const tableContainer = document.getElementById('table-container');
       
@@ -703,7 +860,15 @@
         columns.forEach(column => {
           const cellValue = row[column];
           
-          if (typeof cellValue === 'object' && cellValue !== null && cellValue.url) {
+          if (column === 'department') {
+            // Render department with color badge
+            const deptClass = getDepartmentClass(cellValue);
+            tableHTML += `
+              <td>
+                <span class="dept-badge ${deptClass}">${cellValue}</span>
+              </td>
+            `;
+          } else if (typeof cellValue === 'object' && cellValue !== null && cellValue.url) {
             // Render link
             tableHTML += `
               <td>
@@ -732,16 +897,129 @@
       `;
       
       tableContainer.innerHTML = tableHTML;
-      hideLoading();
     }
     
-    // Helper function to validate URLs
-    function isValidURL(str) {
-      try {
-        new URL(str);
-        return true;
-      } catch {
-        return false;
+    // Render mobile cards view
+    function renderMobileCards() {
+      const mobileCardsContainer = document.getElementById('mobile-cards');
+      
+      if (filteredData.length === 0) {
+        mobileCardsContainer.innerHTML = `
+          <div class="empty">
+            <svg class="empty-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+              <polyline points="14 2 14 8 20 8"></polyline>
+              <line x1="16" y1="13" x2="8" y2="13"></line>
+              <line x1="16" y1="17" x2="8" y2="17"></line>
+              <polyline points="10 9 9 9 8 9"></polyline>
+            </svg>
+            <div>No data found</div>
+          </div>
+        `;
+        return;
+      }
+      
+      let cardsHTML = '';
+      
+      filteredData.forEach((item, index) => {
+        // Find the name field - it could be 'name' or 'Name'
+        const nameField = Object.keys(item).find(key => 
+          key.toLowerCase() === 'name' || 
+          key.toLowerCase() === 'full name' || 
+          key.toLowerCase() === 'fullname'
+        );
+        
+        const name = nameField ? item[nameField] : `Entry ${index + 1}`;
+        
+        // Find the department field - it could be 'department' or 'Department'
+        const deptField = Object.keys(item).find(key => 
+          key.toLowerCase() === 'department' || 
+          key.toLowerCase() === 'dept'
+        );
+        
+        const department = deptField ? item[deptField] : '';
+        const deptClass = getDepartmentClass(department);
+        
+        cardsHTML += `
+          <div class="mobile-card" id="card-${index}">
+            <div class="mobile-card-header" onclick="toggleCard(${index})">
+              <h3>${name}</h3>
+              <div class="header-right">
+                <span class="dept-badge ${deptClass}">${department}</span>
+                <svg class="chevron-icon" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <polyline points="6 9 12 15 18 9"></polyline>
+                </svg>
+              </div>
+            </div>
+            <div class="mobile-card-content">
+        `;
+        
+        // Add all fields except name (already in header)
+        Object.entries(item).forEach(([key, value]) => {
+          if (key !== nameField) {
+            cardsHTML += `
+              <div class="mobile-card-row">
+                <div class="mobile-card-label">${key}</div>
+                <div class="mobile-card-value">
+            `;
+            
+            if (key === deptField) {
+              // Render department with color badge
+              cardsHTML += `<span class="dept-badge ${deptClass}">${value}</span>`;
+            } else if (typeof value === 'object' && value !== null && value.url) {
+              // Render link
+              cardsHTML += `
+                <a href="${value.url}" target="_blank" rel="noopener noreferrer">
+                  ${value.text}
+                  <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
+                    <polyline points="15 3 21 3 21 9"></polyline>
+                    <line x1="10" y1="14" x2="21" y2="3"></line>
+                  </svg>
+                </a>
+              `;
+            } else {
+              // Render regular value
+              cardsHTML += value || '';
+            }
+            
+            cardsHTML += `
+                </div>
+              </div>
+            `;
+          }
+        });
+        
+        cardsHTML += `
+            </div>
+          </div>
+        `;
+      });
+      
+      mobileCardsContainer.innerHTML = cardsHTML;
+    }
+    
+    // Toggle mobile card expansion
+    function toggleCard(index) {
+      const card = document.getElementById(`card-${index}`);
+      card.classList.toggle('expanded');
+    }
+    
+    // Get department CSS class
+    function getDepartmentClass(department) {
+      if (!department) return '';
+      
+      const deptUpper = department.toUpperCase();
+      
+      switch (deptUpper) {
+        case 'CS':
+          return 'dept-cs';
+        case 'IT':
+          return 'dept-it';
+        case 'IS':
+          return 'dept-is';
+        default:
+          return '';
       }
     }
     
@@ -752,6 +1030,20 @@
       button.innerHTML = `
         <div class="spinner" style="width: 16px; height: 16px; margin: 0;"></div>
         Loading...
+      `;
+      
+      document.getElementById('table-container').innerHTML = `
+        <div class="loading">
+          <div class="spinner"></div>
+          <div>Loading data...</div>
+        </div>
+      `;
+      
+      document.getElementById('mobile-cards').innerHTML = `
+        <div class="loading">
+          <div class="spinner"></div>
+          <div>Loading data...</div>
+        </div>
       `;
     }
     
@@ -784,10 +1076,10 @@
         </div>
       `;
       
-      // Auto-hide after 5 seconds
+      // Auto-hide after 10 seconds for errors
       setTimeout(() => {
         clearAlert();
-      }, 5000);
+      }, 10000);
     }
     
     // Show success alert
@@ -803,7 +1095,7 @@
         </div>
       `;
       
-      // Auto-hide after 3 seconds
+      // Auto-hide after 3 seconds for success
       setTimeout(() => {
         clearAlert();
       }, 3000);
@@ -825,6 +1117,16 @@
     function updateLastUpdated(date) {
       const lastUpdatedElement = document.getElementById('last-updated');
       lastUpdatedElement.textContent = `Last updated: ${date.toLocaleString()}`;
+    }
+    
+    // Helper function to validate URLs
+    function isValidURL(str) {
+      try {
+        new URL(str);
+        return true;
+      } catch {
+        return false;
+      }
     }
   </script>
 </body>
